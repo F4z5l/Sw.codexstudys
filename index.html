@@ -1437,7 +1437,7 @@ body,.header,.course-card,.chip,.btn,.stat-card,.cx-th-card{transition:backgroun
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="SELECTIONWAY"/>
-<link rel="apple-touch-icon" href="selectionway-icon-192.png"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 </head>
 <body>
 
@@ -1462,8 +1462,8 @@ body,.header,.course-card,.chip,.btn,.stat-card,.cx-th-card{transition:backgroun
         </div>
       </div>
       <div class="header-right">
-        <button id="install-app-btn" class="inst-header-btn" onclick="installSelectionWay()" aria-label="Install SelectionWay app">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        <button class="inst-header-btn" id="inst-header-btn" onclick="swHeaderInstall()" title="Install App">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Install
         </button>
         <button class="tg-header-btn" onclick="openTgPopup()">
@@ -1731,20 +1731,6 @@ body,.header,.course-card,.chip,.btn,.stat-card,.cx-th-card{transition:backgroun
   </div>
 </div>
 
-
-<!-- ══ INSTALL POPUP ══ -->
-<div class="sw-install-overlay" id="sw-install-popup">
-  <div class="sw-install-card">
-    <button class="sw-install-close" onclick="closeInstallPopup()" aria-label="Close">&times;</button>
-    <img src="selectionway-icon-192.png" alt="SelectionWay app icon" class="sw-install-icon"/>
-    <h3 class="sw-install-title">Install SelectionWay App</h3>
-    <p class="sw-install-text">Fast access, full-screen experience aur ek tap me open — app install karke seekhte raho.</p>
-    <button class="sw-install-btn" id="sw-install-action" onclick="installPopupAction()">Install App</button>
-    <div class="sw-install-ios" id="sw-install-ios" style="display:none">iPhone/iPad: Share <span aria-hidden="true">&#8599;</span> &rarr; <b>Add to Home Screen</b> pe tap karein.</div>
-    <button class="sw-install-later" onclick="closeInstallPopup()">Maybe later</button>
-  </div>
-</div>
-
 <!-- TOAST -->
 <div id="toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:400;padding:11px 22px;border-radius:12px;font-size:0.82rem;font-weight:700;color:#000;pointer-events:none;backdrop-filter:blur(8px);transition:opacity 0.3s,transform 0.3s;white-space:nowrap;font-family:'Space Grotesk',sans-serif;"></div>
 
@@ -1760,62 +1746,6 @@ let videoTopicSelected=null;
 let notesTopicSelected=null;
 let currentQualityList=[];
 let topicsCache={};
-let selectionWayInstallPrompt=null;
-
-// Install button hamesha (permanent) dikhta hai — kabhi hide nahi hota.
-function setInstallAvailable(_available){
-  const btn=document.getElementById('install-app-btn');
-  if(btn)btn.style.display='flex';
-}
-async function installSelectionWay(){
-  if(selectionWayInstallPrompt){
-    await selectionWayInstallPrompt.prompt();
-    const choice=await selectionWayInstallPrompt.userChoice;
-    if(choice.outcome==='accepted')selectionWayInstallPrompt=null;
-    return;
-  }
-  window.parent.postMessage({type:'SELECTIONWAY_INSTALL_REQUEST'},location.origin);
-  // Native prompt available nahi hai (iPhone/unsupported browser) → popup dikhao jisme instructions hain.
-  openInstallPopup();
-}
-window.addEventListener('beforeinstallprompt',event=>{
-  event.preventDefault();selectionWayInstallPrompt=event;setInstallAvailable(true);
-});
-window.addEventListener('message',event=>{
-  if(event.origin!==location.origin)return;
-  if(event.data&&event.data.type==='SELECTIONWAY_INSTALL_AVAILABLE')setInstallAvailable(true);
-  if(event.data&&event.data.type==='SELECTIONWAY_INSTALL_RESULT'&&event.data.outcome==='accepted')setInstallAvailable(false);
-});
-window.addEventListener('DOMContentLoaded',()=>{
-  if(window.matchMedia('(display-mode: standalone)').matches)setInstallAvailable(false);
-  else window.parent.postMessage({type:'SELECTIONWAY_INSTALL_STATUS'},location.origin);
-});
-
-// ── INSTALL POPUP (har baar web khulne pe) ──
-function openInstallPopup(){
-  const ov=document.getElementById('sw-install-popup');
-  if(!ov)return;
-  ov.style.display='flex';
-  requestAnimationFrame(()=>ov.classList.add('open'));
-}
-function closeInstallPopup(){
-  const ov=document.getElementById('sw-install-popup');
-  if(!ov)return;
-  ov.classList.remove('open');
-  setTimeout(()=>{ov.style.display='none';},300);
-}
-async function installPopupAction(){
-  await installSelectionWay();
-  if(!selectionWayInstallPrompt)closeInstallPopup();
-}
-window.addEventListener('appinstalled',()=>{closeInstallPopup();setInstallAvailable(false);});
-window.addEventListener('DOMContentLoaded',()=>{
-  const installed=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-  if(installed)return;
-  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!window.MSStream;
-  if(ios)document.getElementById('sw-install-ios').style.display='block';
-  setTimeout(openInstallPopup,1200);
-});
 
 function getEnrolled(){try{const v=JSON.parse(localStorage.getItem(SW_KEY)||'[]');return Array.isArray(v)?v:[];}catch{return[];}}
 function saveEnrolled(ids){localStorage.setItem(SW_KEY,JSON.stringify(ids));}
@@ -2155,17 +2085,11 @@ function renderClassCard(cls){
       </div>
     </div>
     <div style="padding:12px 16px;">
-      ${_srcs.length>1
-        ?`<div style="display:flex;flex-wrap:wrap;gap:6px;">${_srcs.map(r=>`<button class="btn btn-cx btn-sm" onclick="openLink('${esc(r.url)}')">▶ ${esc(r.quality)}</button>`).join('')}</div>`
-        :(_srcs.length===1
-          ?`<button class="btn btn-cx" style="width:100%;" onclick="openLink('${esc(_srcs[0].url)}')">
-              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Watch Recording</button>`
-          :(cls.class_link
-            ?`<button class="btn btn-cx" style="width:100%;" onclick="openLink('${esc(cls.class_link)}')">
-              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Watch Recording</button>`
-            :`<button class="btn btn-disabled" style="width:100%;" disabled>Recording soon</button>`))}
+      ${_canPlay
+        ?`<button class="btn btn-cx" style="width:100%;" onclick="playClassRef('${_key}')">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Watch Lecture${_srcs.length>1?` (${_srcs.length} qualities)`:''}</button>`
+        :`<button class="btn btn-disabled" style="width:100%;" disabled>Recording soon</button>`}
       ${(cls.classPdf&&cls.classPdf.length)?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${cls.classPdf.map(p=>`<button class="btn btn-outline btn-sm" onclick="openLink('${esc(p.url)}')">📄 Notes</button>`).join('')}</div>`:''}
     </div>
   </div>`;
@@ -2335,7 +2259,7 @@ function showQualityPicker(recs){
     </button>`).join('');
   document.getElementById('quality-modal').classList.add('open');
 }
-function pickQuality(url){closeQualityModal();openLink(url);}
+function pickQuality(url){closeQualityModal();openPlayer('Lecture',[{url:fixMediaUrl(url),quality:'Auto'}],'');}
 function closeQualityModal(e){
   if(e&&e.target!==document.getElementById('quality-modal'))return;
   document.getElementById('quality-modal').classList.remove('open');
@@ -2350,17 +2274,41 @@ function ytId(u){
   const m=String(u||'').match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([A-Za-z0-9_-]{6,})/);
   return m?m[1]:'';
 }
+function mediaProxyBase(){
+  try{
+    if(location.protocol!=='http:'&&location.protocol!=='https:')return '';
+    return location.origin+'/api/public/media?u=';
+  }catch(e){return '';}
+}
+function fixMediaUrl(u){
+  // Kuch links dead proxy hosts (jaise ...-proxy2.hranker.com) par point karte hain.
+  // Aur hranker CDN mp4 par content-type missing hota hai -> browser (ORB) block kar deta hai,
+  // isliye media apne server ke proxy se stream karte hain.
+  let x=String(u||'').trim();
+  if(!x)return x;
+  if(x.startsWith('http://'))x='https://'+x.slice(7);
+  x=x.replace(/^(https:\/\/[a-z0-9-]+?)-proxy\d*(\.hranker\.com)/i,'$1$2');
+  const base=mediaProxyBase();
+  if(base&&/^https:\/\/[a-z0-9.-]*\.hranker\.com\//i.test(x)&&x.indexOf('/api/public/media')===-1){
+    x=base+encodeURIComponent(x);
+  }
+  return x;
+}
+
 function classSources(cls){
-  let recs=(cls&&cls.mp4Recordings||[]).filter(r=>r&&r.url);
+  let recs=(cls&&cls.mp4Recordings||[]).filter(r=>r&&r.url)
+    .map(r=>({url:fixMediaUrl(r.url),quality:r.quality,size:r.size}));
   recs=recs.slice().sort((a,b)=>qRank(b.quality)-qRank(a.quality));
+  const link=fixMediaUrl(cls&&cls.class_link);
+  if(link&&/\.m3u8(%3F|\?|&|$)/i.test(link)&&!recs.some(r=>r.url===link)){
+    recs.unshift({url:link,quality:'Auto',size:0});
+  }
   return recs;
 }
 function hasPlayable(cls){return classSources(cls).length>0||!!(cls&&cls.class_link);}
 function playClass(cls,title){
   const recs=classSources(cls);
-  const url=recs.length?recs[0].url:((cls&&cls.class_link)||'');
-  if(!url){showToast('Recording abhi available nahi hai','error');return;}
-  openPlayer(title||cls.title||'Lecture',recs,url);
+  openPlayer(title||(cls&&cls.title)||'Lecture',recs,fixMediaUrl((cls&&cls.class_link)||''));
 }
 function playClassById(topicKind,ti,ci){
   const list=(topicsCache[topicKind]||[]);
@@ -2414,19 +2362,25 @@ function loadHlsLib(){
   });
   return window._cxHlsLoad;
 }
-function playerFallback(url,tried){
-  // sabse pehle baaki qualities try karo, phir native browser player (iframe) me chalao
+function playerFallback(url){
+  // pehle baaki qualities try karo; kaam na kare to saaf message dikhao.
+  // (Pehle yahan iframe use hota tha -> video host embed block karta hai,
+  //  isliye "refused to connect" screen aata tha. Ab iframe use nahi hota.)
   const s=cxPlayerState;
   for(let i=0;i<s.sources.length;i++){
-    if(i!==s.idx&&!cxPlayerState.tried[i]){cxPlayerState.idx=i;renderPlayerBar();mountPlayerSource();return;}
+    if(i!==s.idx&&!s.tried[i]){s.idx=i;renderPlayerBar();mountPlayerSource();return;}
   }
   const st=document.getElementById('cx-player-stage');
   st.querySelectorAll('video,iframe').forEach(n=>n.remove());
-  const fr=document.createElement('iframe');
-  fr.src=url;fr.allow='autoplay; encrypted-media; fullscreen; picture-in-picture';fr.allowFullscreen=true;
-  st.appendChild(fr);
-  playerMsg('');
+  const safe=esc(url||'');
+  playerMsg('<div><div style="font-size:1.6rem;margin-bottom:8px;">\u26a0\ufe0f</div>'+
+    '<div style="margin-bottom:10px;">Ye lecture abhi play nahi ho pa raha. Network check karein ya dobara try karein.</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">'+
+    '<button class="cx-q-btn" onclick="retryPlayer()">Retry</button>'+
+    (safe?'<a class="cx-player-link" href="'+safe+'" target="_blank" rel="noopener">Open in browser</a>':'')+
+    '</div></div>');
 }
+function retryPlayer(){cxPlayerState.tried={};mountPlayerSource(true);}
 function mountPlayerSource(reset){
   const st=document.getElementById('cx-player-stage');
   st.querySelectorAll('video,iframe').forEach(n=>n.remove());
@@ -2438,7 +2392,7 @@ function mountPlayerSource(reset){
   if(!url){playerMsg('<div>Is lecture ki recording abhi available nahi hai.</div>');return;}
   s.tried[s.idx]=true;
 
-  if(isYouTube(url)){
+  if(!s.sources.length&&isYouTube(url)){
     const id=ytId(url);
     const fr=document.createElement('iframe');
     fr.src=id?`https://www.youtube.com/embed/${id}?autoplay=1&playsinline=1&rel=0`:url;
@@ -2450,10 +2404,11 @@ function mountPlayerSource(reset){
   const v=document.createElement('video');
   v.controls=true;v.autoplay=true;v.playsInline=true;v.setAttribute('playsinline','');
   v.preload='metadata';v.controlsList='nodownload';
+  v.referrerPolicy='no-referrer';
   v.onerror=()=>playerFallback(url);
   st.appendChild(v);
 
-  const isHls=/\.m3u8(\?|$)/i.test(url);
+  const isHls=/\.m3u8(%3F|\?|&|$)/i.test(url);
   if(isHls){
     if(v.canPlayType('application/vnd.apple.mpegurl')){v.src=url;v.play().catch(()=>{});return;}
     loadHlsLib().then(Hls=>{
@@ -2754,6 +2709,20 @@ function showToast(msg,type='success'){
 </script>
 
 
+<!-- ===== Install App Popup ===== -->
+<div class="sw-install-overlay" id="sw-install" onclick="if(event.target===this)swInstallClose()">
+  <div class="sw-install-card">
+    <button class="sw-install-close" onclick="swInstallClose()" aria-label="Close">&times;</button>
+    <img class="sw-install-icon" src="icon-192.png" alt="SELECTIONWAY app icon"/>
+    <h3 class="sw-install-title">Install SELECTIONWAY App</h3>
+    <p class="sw-install-text">Add SELECTIONWAY to your home screen for one-tap access and a full-screen app experience — free, no Play Store needed.</p>
+    <button class="sw-install-btn" id="sw-install-btn" onclick="swInstallNow()">⬇ Install App</button>
+    <div class="sw-install-ios" id="sw-install-ios" style="display:none">
+      <p>On iPhone/iPad: tap the <b>Share</b> button <span style="font-size:1.1em">⎋</span> in Safari, then choose <b>"Add to Home Screen"</b>.</p>
+    </div>
+    <button class="sw-install-later" onclick="swInstallClose()">Maybe later</button>
+  </div>
+</div>
 <style>
 .sw-install-overlay{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;
   background:rgba(5,3,12,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity .3s;}
@@ -2778,6 +2747,80 @@ function showToast(msg,type='success'){
 .sw-install-later{margin-top:12px;border:none;background:none;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--muted2,#999);}
 .sw-install-later:hover{color:var(--txt,#fff);}
 </style>
+<script>
+(function(){
+  var deferredPrompt = null;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+
+  window.swInstallOpen = function(){
+    if (isStandalone) return;
+    var o = document.getElementById('sw-install');
+    if (!o) return;
+    if (!deferredPrompt) {
+      document.getElementById('sw-install-btn').style.display = isIOS ? 'none' : 'none';
+      document.getElementById('sw-install-ios').style.display = 'block';
+      document.querySelector('#sw-install-ios p').innerHTML = isIOS
+        ? 'On iPhone/iPad: tap the <b>Share</b> button in Safari, then choose <b>"Add to Home Screen"</b>.'
+        : 'Open your browser menu <b>⋮</b> and tap <b>"Install app"</b> or <b>"Add to Home screen"</b>.';
+    }
+    o.style.display = 'flex';
+    requestAnimationFrame(function(){ o.classList.add('open'); });
+  };
+
+  window.swInstallClose = function(){
+    var o = document.getElementById('sw-install');
+    if (!o) return;
+    o.classList.remove('open');
+    setTimeout(function(){ o.style.display = 'none'; }, 300);
+    try { localStorage.setItem('sw-install-dismissed', Date.now()); } catch(e){}
+  };
+
+  window.swInstallNow = function(){
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(choice){
+        deferredPrompt = null;
+        if (choice.outcome === 'accepted') swInstallClose();
+      });
+    }
+  };
+
+  // Header install button: one tap install when supported, otherwise show instructions popup
+  window.swHeaderInstall = function(){
+    if (deferredPrompt) {
+      swInstallNow();
+    } else {
+      swInstallOpen();
+    }
+  };
+  function swSyncHeaderBtn(){
+    var b = document.getElementById('inst-header-btn');
+    if (b) b.classList.toggle('installed', !!isStandalone);
+  }
+  swSyncHeaderBtn();
+
+  window.addEventListener('appinstalled', function(){
+    isStandalone = true; swSyncHeaderBtn();
+    swInstallClose();
+    try { if (window.showToast) showToast('App installed! 🎉','success'); } catch(e){}
+  });
+
+  // Show popup shortly after load, unless installed or dismissed in the last 3 days
+  setTimeout(function(){
+    if (isStandalone) return;
+    var last = 0;
+    try { last = parseInt(localStorage.getItem('sw-install-dismissed') || '0', 10); } catch(e){}
+    if (Date.now() - last < 3*24*60*60*1000) return;
+    swInstallOpen();
+  }, 2500);
+})();
+</script>
 
 </body>
   </html>
